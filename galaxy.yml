@@ -1,0 +1,8 @@
+namespace: is_hwa
+name: infra_ha_suite
+version: 1.0.1
+readme: README.md
+authors:
+  - SeungHwa Lee <is-hwa@naver.com>
+license: MIT
+tags: [devops, ansible, automation]

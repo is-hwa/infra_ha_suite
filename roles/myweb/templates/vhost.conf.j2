@@ -1,0 +1,12 @@
+<VirtualHost *:80>
+    ServerAdmin {{ vhost_serveradmin }}
+    ServerName {{ vhost_servername }}
+    ProxyRequests Off
+    ProxyPreserveHost On
+
+    ProxyPass / http://localhost:8080/
+    ProxyPassReverse / http://localhost:8080/
+
+    ErrorLog /var/log/httpd/{{ vhost_servername }}-error.log
+    CustomLog /var/log/httpd/{{ vhost_servername }}-access.log combined
+</VirtualHost>

@@ -1,0 +1,19 @@
+---
+- name: set db password
+  remote_user: root
+  # (ansible) ansible 사용자 -- 키배포--> (ansible#) root
+  community.mysql.mysql_user:
+    name: root
+    password: soldesk1.
+    priv: '*.*:ALL'
+    # 모든 디비.모든 테이블의 : 모든 권한
+    state: present
+    login_user: root
+    login_password: 'soldesk1.'
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    # DB가 생성된, 동작 중인 서버에서 확인해 보아야 함
+
+- name: restart db service
+  ansible.builtin.systemd:
+    name: "{{ svc_db }}"
+    state: restarted

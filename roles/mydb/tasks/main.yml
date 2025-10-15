@@ -1,0 +1,24 @@
+---
+- name: 1) DB 패키지 설치
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ pkg_db }}"
+
+- name: 2) DB 서비스 기동
+  ansible.builtin.service:
+    name: "{{ svc_db }}"
+    state: started
+    enabled: true
+  notify: 
+    - set db password
+
+- name: 설정 파일 배포(copy) - /etc/my.cnf
+  ansible.builtin.copy:
+    src: "{{ env_file }}"
+    dest: "{{ conf_mysql }}" 
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - restart db service

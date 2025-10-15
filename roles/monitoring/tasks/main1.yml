@@ -1,0 +1,53 @@
+#roles/monitoring/tasks/main1.yml
+- name: Backup prometheus.yml if not already backed up
+  ansible.builtin.copy:
+    src: /etc/prometheus/prometheus.yml
+    dest: /etc/prometheus/prometheus.yml.OLD
+    remote_src: yes
+  # when 조건 제거하거나 변수 존재확인 추가 필요
+
+- name: Set prometheus_targets_formatted variable with YAML list format
+  set_fact:
+    prometheus_targets_formatted: |-
+      {% for host in prometheus_targets %}
+      - "{{ host }}"
+      {% endfor %}
+  vars:
+    prometheus_targets:
+      - ansible1.example.com:9100
+      - ansible2.example.com:9100
+      - ansible3.example.com:9100
+      - ansible4.example.com:9100
+      - ansible5.example.com:9100
+      - ansible6.example.com:9100
+
+- name: Template prometheus.yml
+  template:
+    src: "{{ playbook_dir }}/roles/monitoring/templates/prometheus.yml.j2"
+    dest: /etc/prometheus/prometheus.yml
+    backup: yes
+  vars:
+    prometheus_targets:
+      - ansible1.example.com:9100
+      - ansible2.example.com:9100
+      - ansible3.example.com:9100
+      - ansible4.example.com:9100
+      - ansible5.example.com:9100
+      - ansible6.example.com:9100
+
+- name: Restart Prometheus service
+  ansible.builtin.systemd:
+    name: prometheus
+    state: restarted
+    enabled: true
+
+- name: Check Prometheus service status
+  ansible.builtin.systemd:
+    name: prometheus
+    state: started
+  register: prometheus_status
+
+- name: Display Prometheus service status
+  debug:
+    msg: "Prometheus service is {{ prometheus_status.status.ActiveState | default('unknown') }}"
+

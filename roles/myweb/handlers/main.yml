@@ -1,0 +1,24 @@
+---
+- name: restart httpd
+  systemd:
+    name: httpd
+    state: restarted
+
+- name: restart tomcat
+  systemd:
+    name: tomcat
+    state: restarted
+    enabled: true
+
+- name: daemon-reload
+  command: systemctl daemon-reload
+
+- name: reload firewalld
+  systemd:
+    name: firewalld
+    state: reloaded
+
+- name: reload nginx
+  systemd:
+    name: nginx
+    state: reloaded

@@ -1,0 +1,32 @@
+---
+- name: Install httpd
+  ansible.builtin.dnf:
+    name: httpd
+    state: present
+
+- name: Open http service
+  ansible.posix.firewalld:
+    service: http
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: Disable Apache welcome page
+  ansible.builtin.file:
+    path: /etc/httpd/conf.d/welcome.conf
+    state: absent
+
+- name: Deploy index.html
+  ansible.builtin.copy:
+    dest: /var/www/html/index.html
+    content: "host={{ inventory_hostname }}\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Ensure httpd started and enabled
+  ansible.builtin.systemd:
+    name: httpd
+    enabled: true
+    state: restarted
+

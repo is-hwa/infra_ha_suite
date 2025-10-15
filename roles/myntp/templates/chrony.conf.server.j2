@@ -1,0 +1,17 @@
+# NTP Server config
+driftfile /var/lib/chrony/drift
+makestep 1.0 3
+rtcsync
+logdir /var/log/chrony
+
+# 상위 풀 (원하는 풀로 수정)
+pool 0.pool.ntp.org iburst
+pool 1.pool.ntp.org iburst
+
+# 서버로서 클라이언트 허용 대역 (예: 내부망)
+allow 192.168.10.0/24
+
+# 로컬에서 쿼리 허용
+cmdallow 127.0.0.1
+cmdallow ::1
+

@@ -1,0 +1,89 @@
+---
+- name: "[LB_NFS] httpd가 있으면 중지/비활성(포트80 충돌 방지)"
+  ansible.builtin.systemd:
+    name: httpd
+    state: stopped
+    enabled: false
+  ignore_errors: true
+  tags: [lb_nfs]
+
+- name: "[LB_NFS] nginx가 있으면 중지/비활성(포트80 충돌 방지)"
+  ansible.builtin.systemd:
+    name: nginx
+    state: stopped
+    enabled: false
+  ignore_errors: true
+  tags: [lb_nfs]
+
+- name: "[LB_NFS] 필수 패키지 설치"
+  ansible.builtin.package:
+    name: "{{ lb_packages }}"
+    state: present
+  tags: [lb_nfs]
+
+- name: "[LB_NFS] firewalld 기동/부팅활성"
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+  tags: [lb_nfs]
+
+# NFS export
+- name: "[LB_NFS] NFS export 디렉토리 생성"
+  ansible.builtin.file:
+    path: "{{ nfs_export_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags: [lb_nfs]
+
+- name: "[LB_NFS] /etc/exports.d 설정"
+  ansible.builtin.template:
+    src: exports.d-www1.j2
+    dest: /etc/exports.d/www1.exports
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "web_lb_nfs:nfs:exportfs-reload"
+  tags: [lb_nfs]
+
+- name: "[LB_NFS] nfs-server 기동/부팅활성"
+  ansible.builtin.systemd:
+    name: nfs-server
+    state: started
+    enabled: true
+  tags: [lb_nfs]
+
+# HAProxy
+- name: "[LB_NFS] haproxy.cfg 배포"
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "web_lb_nfs:haproxy:reload"
+  tags: [lb_nfs]
+
+- name: "[LB_NFS] haproxy 설정 검증"
+  ansible.builtin.command: haproxy -c -f /etc/haproxy/haproxy.cfg
+  changed_when: false
+  tags: [lb_nfs]
+
+- name: "[LB_NFS] haproxy 기동/부팅활성"
+  ansible.builtin.systemd:
+    name: haproxy
+    state: started
+    enabled: true
+  tags: [lb_nfs]
+
+# 방화벽
+- name: "[LB_NFS] 방화벽 서비스 오픈"
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ lb_firewalld_services }}"
+  tags: [lb_nfs]

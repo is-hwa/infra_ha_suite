@@ -1,0 +1,15 @@
+# 기본값 (group_vars/lb.yml에서 override)
+nfs_export_path: "/www1"
+nfs_allowed_cidr: "192.168.10.0/24"
+
+haproxy_frontend_http_port: 80
+haproxy_backends: []
+
+lb_packages:
+  - haproxy
+  - nfs-utils
+  - firewalld
+
+lb_firewalld_services:
+  - http
+  - nfs

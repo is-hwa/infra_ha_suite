@@ -1,0 +1,9 @@
+# NTP Client config
+driftfile /var/lib/chrony/drift
+makestep 1.0 3
+rtcsync
+logdir /var/log/chrony
+
+# 내부 NTP 서버를 우선 사용
+server {{ (groups['ntp_server'] | first) }} iburst
+

@@ -1,0 +1,32 @@
+---
+# FTP Server Role
+- name: FTP 관련 패키지 설치 (vsftpd, ftp, firewalld)
+  ansible.builtin.yum:
+    name:
+      - vsftpd
+      - ftp
+      - firewalld
+    state: present
+
+- name: vsftpd, firewalld 서비스 기동 및 부팅 시 활성화
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - vsftpd
+    - firewalld
+
+- name: 방화벽에 FTP 서비스 허용
+  ansible.posix.firewalld:
+    service: ftp
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: 테스트용 FTP 계정 생성
+  ansible.builtin.user:
+    name: ftpuser
+    password: "{{ 'soldesk1.' | password_hash('sha512') }}"
+    shell: /bin/bash
+    create_home: true

@@ -1,0 +1,76 @@
+##roles/monitoring/tasks/other_server.yml
+- name: Check if firewalld is active
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+  register: firewalld_status
+  ignore_errors: true
+
+- name: open firewall port
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop:
+    - 9090/tcp
+    - 3100/tcp
+    - 3000/tcp
+    - 9100/tcp
+
+- name: Create grafana.repo file
+  ansible.builtin.copy:
+    dest: /etc/yum.repos.d/grafana.repo
+    content: |
+      [grafana]
+      name=grafana
+      baseurl=https://rpm.grafana.com
+      repo_gpgcheck=1
+      enabled=1
+      gpgcheck=1
+      gpgkey=https://rpm.grafana.com/gpg.key
+      sslverify=1
+      sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+    mode: '0644'
+- name: Add Prometheus repository via script
+  ansible.builtin.shell: |
+    curl -s https://packagecloud.io/install/repositories/prometheus-rpm/release/script.rpm.sh | bash
+
+- name: install package
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - promtail
+    - node_exporter
+
+- name: Replace localhost:3100 with mail.example.com:3100 in promtail config
+  ansible.builtin.replace:
+    path: /etc/promtail/config.yml
+    regexp: 'localhost:3100'
+    replace: 'ansible.example.com:3100'
+
+- name: Set read permission for user promtail on /var/log/messages
+  ansible.posix.acl:
+    path: /var/log/messages
+    entity: promtail
+    etype: user
+    permissions: r
+    state: present
+
+- name: system enable
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - promtail
+    - node_exporter
+- name: Reload firewalld to apply changes
+  ansible.builtin.command:
+    cmd: firewall-cmd --reload
+
+- name: Display open ports
+  ansible.builtin.command:
+    cmd: firewall-cmd --list-ports
+

@@ -1,0 +1,180 @@
+---
+# tasks file for roles/myweb
+
+# Apache, SSL 모듈, 방화벽, Java 설치
+- name: Install Apache and proxy modules
+  yum:
+    name:
+      - httpd                       # Apache 웹 서버
+      - mod_ssl                     # Apache SSL 모듈
+      - firewalld                   # 방화벽 관리 도구
+      - java-1.8.0-openjdk.x86_64   # Tomcat 실행용 OpenJDK 8
+    state: present
+
+# Apache와 firewalld 서비스 활성화 및 시작
+- name: Enable and start Apache
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - httpd
+    - firewalld
+  ignore_errors: yes
+
+# 방화벽에 HTTP/HTTPS 서비스 오픈
+- name: Open required firewall ports
+  firewalld:
+    service: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: yes
+  loop:
+    - http
+    - https
+  ignore_errors: yes
+
+# Tomcat9 압축파일 다운로드
+- name: Tomcat9 Download
+  ansible.builtin.get_url:
+    url: https://downloads.apache.org/tomcat/tomcat-9/v9.0.109/bin/apache-tomcat-9.0.109.tar.gz
+    dest: /usr/local
+
+# Tomcat9 압축 해제
+- name: unarchive Tomcat9
+  ansible.builtin.unarchive:
+    src: /usr/local/apache-tomcat-9.0.109.tar.gz
+    dest: /usr/local
+    remote_src: yes
+    creates: /usr/local/apache-tomcat-9.0.109
+
+# /usr/local/tomcat 심볼릭 링크 생성
+- name: make s-link
+  ansible.builtin.file:
+    src: /usr/local/apache-tomcat-9.0.109
+    dest: /usr/local/tomcat
+    owner: root
+    group: root
+    state: link
+
+# tomcat 환경변수 CATALINA_HOME 등록
+- name: making script for tomcat
+  ansible.builtin.lineinfile:
+    path: /home/ansible/.bashrc
+    regexp: '^export\s+CATALINA_HOME='
+    line: 'export CATALINA_HOME=/usr/local/tomcat'
+    insertafter: EOF
+
+# tomcat 그룹 생성
+- name: Create tomcat group
+  ansible.builtin.group:
+    name: tomcat
+    state: present
+
+# tomcat 사용자 생성
+- name: Create tomcat user
+  ansible.builtin.user:
+    name: tomcat
+    group: tomcat
+    home: /usr/local/tomcat
+    shell: /bin/false
+    system: yes
+    state: present
+
+# Tomcat 디렉토리 권한 tomcat 사용자에게 부여
+- name: Set ownership for Tomcat directory
+  ansible.builtin.file:
+    path: /usr/local/apache-tomcat-9.0.109
+    owner: tomcat
+    group: tomcat
+    recurse: yes
+
+# Tomcat systemd 서비스 파일 복사
+- name: Copy Tomcat systemd service file
+  ansible.builtin.copy:
+    src: tomcat.service
+    dest: /etc/systemd/system/tomcat.service
+    owner: root
+    group: root
+    mode: '0644'
+
+# systemd 데몬 리로드
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+# Tomcat 서비스 활성화 및 시작
+- name: Enable and start Tomcat service
+  ansible.builtin.systemd:
+    name: tomcat
+    enabled: yes
+    state: started
+
+# 방화벽 8080 포트 개방 (Tomcat 접근용)
+- name: Open 8080 port for Tomcat
+  ansible.posix.firewalld:
+    port: 8080/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+
+# Tomcat 관리자 계정 추가
+- name: Add admin user to tomcat-users.xml
+  ansible.builtin.blockinfile:
+    path: /usr/local/tomcat/conf/tomcat-users.xml
+    insertafter: '</tomcat-users>'
+    block: |
+      <role rolename="admin-gui"/>
+      <role rolename="manager-gui"/>
+      <user username="admin" password="centos" roles="admin-gui,manager-gui"/>
+
+# AJP Connector 주석 해제 및 활성화
+- name: Enable AJP connector in server.xml
+  ansible.builtin.replace:
+    path: /usr/local/tomcat/conf/server.xml
+    regexp: '^<!--\s*<Connector protocol="AJP/1.3"(.|\n)*?redirectPort="8443"\s*/>\s*-->'
+    replace: |
+      <Connector protocol="AJP/1.3"
+                 address="::1"
+                 port="8009"
+                 redirectPort="8443" />
+
+# Apache VirtualHost 설정 파일 배포
+- name: Deploy Apache vhost configuration
+  ansible.builtin.copy:
+    src: vhost.conf
+    dest: /etc/httpd/conf.d/vhost.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart httpd
+
+# Apache 재시작
+- name: Restart Apache
+  ansible.builtin.systemd:
+    name: httpd
+    state: restarted
+
+# Tomcat 재시작
+- name: Restart Tomcat
+  ansible.builtin.systemd:
+    name: tomcat
+    state: restarted
+
+# MariaDB JDBC 드라이버 다운로드 (Tomcat 연동용)
+- name: MariaDB JDBC Driver 다운로드
+  ansible.builtin.get_url:
+    url: https://downloads.mariadb.com/Connectors/java/connector-java-1.1.10/mariadb-java-client-1.1.10.jar
+    dest: /usr/lib/jvm//java-1.8.0-openjdk-1.8.0.462.b08-4.el9.x86_64/jre/lib/ext
+
+# JDBC 반영 위해 Tomcat 재시작
+- name: Restart Tomcat
+  ansible.builtin.systemd:
+    name: tomcat
+    state: restarted
+
+# nginx 설치 (추가적인 Reverse Proxy 또는 로드밸런서 역할 대비)
+- name: Install nginx via yum
+  yum:
+    name: nginx
+    state: present

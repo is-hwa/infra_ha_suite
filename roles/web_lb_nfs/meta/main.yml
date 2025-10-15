@@ -1,0 +1,10 @@
+---
+galaxy_info:
+  role_name: web_lb_nfs
+  description: "HAProxy(Load Balancer) + NFS export 구성 (포트80 충돌 방지/설정 사전검증 포함)"
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: EL
+      versions: [9]
+dependencies: []

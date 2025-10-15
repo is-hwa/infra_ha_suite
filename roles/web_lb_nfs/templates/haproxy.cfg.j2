@@ -1,0 +1,22 @@
+global
+  daemon
+  maxconn 2048
+  user haproxy
+  group haproxy
+
+defaults
+  mode http
+  timeout connect 5s
+  timeout client  30s
+  timeout server  30s
+  option httplog
+  option dontlognull
+
+frontend fe_http
+  bind *:{{ haproxy_frontend_http_port }}
+  default_backend be_web
+
+backend be_web
+{% for b in haproxy_backends %}
+  server {{ b.name }} {{ b.addr }}:{{ b.port }} check
+{% endfor %}

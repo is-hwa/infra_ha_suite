@@ -1,0 +1,15 @@
+---
+- name: resolv.conf 백업
+  copy:
+    src: /etc/resolv.conf
+    dest: /etc/resolv.conf.bak
+    remote_src: yes
+  ignore_errors: yes
+
+- name: resolv.conf에 DNS 서버 등록
+  lineinfile:
+    path: /etc/resolv.conf
+    line: "nameserver {{ dns_host_ip }}"
+    insertafter: BOF
+    state: present
+

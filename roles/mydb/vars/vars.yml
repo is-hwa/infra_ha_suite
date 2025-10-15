@@ -1,0 +1,8 @@
+---
+pkg_db: 
+    - mariadb-server
+    - python3-PyMySQL
+svc_db: mariadb
+env_file: 'my.cnf.standard'
+conf_get_url: 'http://control/my.cnf.standard'
+conf_mysql: '/etc/my.cnf'

@@ -1,0 +1,45 @@
+---
+# Mail Server Role
+- name: 메일 관련 패키지 설치 (postfix, dovecot, s-nail, firewalld)
+  ansible.builtin.yum:
+    name:
+      - postfix
+      - dovecot
+      - s-nail
+      - firewalld
+    state: present
+
+- name: postfix, dovecot, firewalld 서비스 기동 및 부팅 시 활성화
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - postfix
+    - dovecot
+    - firewalld
+
+- name: 방화벽에 메일 서비스 허용 (SMTP, IMAP, POP3)
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop:
+    - smtp
+    - imap
+    - pop3
+
+- name: 테스트용 MAIL 계정 생성
+  ansible.builtin.user:
+    name: justice
+    password: "{{ 'soldesk1.' | password_hash('sha512') }}"
+    shell: /bin/bash
+    create_home: true
+
+- name: resolv.conf 설정
+  ansible.builtin.copy:
+    dest: /etc/resolv.conf
+    content: |
+      nameserver 8.8.8.8
+      nameserver 1.1.1.1

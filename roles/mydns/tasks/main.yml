@@ -1,0 +1,82 @@
+---
+- name: BIND 패키지 설치
+  yum:
+    name:
+      - bind
+      - bind-utils
+    state: present
+  ignore_errors: yes    # 오류 발생해도 다음 task 진행
+
+- name: named.conf 설정 파일 배포
+  copy:
+    dest: /etc/named.conf
+    content: |
+      options {
+          listen-on port 53 { any; };
+          listen-on-v6 port 53 { any; };
+          directory     "/var/named";
+          dump-file     "/var/named/data/cache_dump.db";
+          statistics-file "/var/named/data/named_stats.txt";
+          memstatistics-file "/var/named/data/named_mem_stats.txt";
+          allow-query     { any; };
+          recursion yes;
+      };
+
+      zone "{{ dns_domain }}" IN {
+          type master;
+          file "{{ dns_domain }}.zone";
+          allow-update { none; };
+      };
+  ignore_errors: yes
+
+- name: 존(zone) 파일 배포
+  copy:
+    dest: "/var/named/{{ dns_domain }}.zone"
+    content: |
+      $TTL 1D
+      @   IN SOA  {{ dns_ns }} root.{{ dns_domain }}. (
+              {{ dns_serial }} ; serial
+              1D  ; refresh
+              1H  ; retry
+              1W  ; expire
+              3H ) ; minimum
+          IN  NS  {{ dns_ns }}
+      ns1 IN  A   {{ dns_host_ip }}
+      www IN  A   {{ dns_www_ip }}
+  ignore_errors: yes
+
+- name: 존 파일 권한 설정
+  file:
+    path: "/var/named/{{ dns_domain }}.zone"
+    owner: named
+    group: named
+    mode: '0644'
+  ignore_errors: yes
+
+- name: named 서비스 시작 및 부팅 시 활성화
+  block:
+    - name: named 서비스 실행
+      systemd:
+        name: named
+        state: started
+        enabled: yes
+  rescue:
+    - name: named 서비스 실행 실패 로그 출력
+      debug:
+        msg: "⚠️ named 서비스 시작 실패! 서버 상태를 확인하세요."
+  always:
+    - name: named 서비스 실행 여부 확인
+      shell: systemctl status named | grep Active
+      register: named_status
+      ignore_errors: yes
+    - debug:
+        var: named_status.stdout
+
+- name: 방화벽에 DNS 포트 개방
+  firewalld:
+    service: dns
+    permanent: yes
+    state: enabled
+    immediate: yes
+  ignore_errors: yes
+

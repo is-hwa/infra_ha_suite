@@ -1,0 +1,10 @@
+---
+- name: reload haproxy
+  listen: "web_lb_nfs:haproxy:reload"
+  ansible.builtin.systemd:
+    name: haproxy
+    state: restarted
+
+- name: exportfs reload
+  listen: "web_lb_nfs:nfs:exportfs-reload"
+  ansible.builtin.command: exportfs -ra

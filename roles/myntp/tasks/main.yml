@@ -1,0 +1,57 @@
+---
+# 통합 NTP 역할: 호스트가 ntp_server 그룹이면 서버용, 아니면 클라이언트용
+
+# 이 호스트가 서버인지 판별
+- name: Decide role type
+  ansible.builtin.set_fact:
+    is_ntp_server: "{{ inventory_hostname in (groups['ntp_server'] | default([])) }}"
+
+# 공통: chrony 설치
+- name: Install chrony
+  ansible.builtin.dnf:
+    name: chrony
+    state: present
+
+# 서버일 때만 firewalld 설치 + NTP 서비스 허용
+- name: Install firewalld (server only)
+  ansible.builtin.dnf:
+    name: firewalld
+    state: present
+  when: is_ntp_server
+
+- name: Allow NTP in firewalld (server only)
+  ansible.posix.firewalld:
+    service: ntp
+    permanent: true
+    state: enabled
+    immediate: true
+  when: is_ntp_server
+
+# 서버/클라이언트 각각 알맞은 템플릿 배포
+- name: Deploy chrony.conf (server)
+  ansible.builtin.template:
+    src: chrony.conf.server.j2
+    dest: /etc/chrony.conf
+    owner: root
+    group: root
+    mode: '0644'
+  when: is_ntp_server
+  notify: restart chronyd
+
+- name: Deploy chrony.conf (client)
+  ansible.builtin.template:
+    src: chrony.conf.client.j2
+    dest: /etc/chrony.conf
+    owner: root
+    group: root
+    mode: '0644'
+  when: not is_ntp_server
+  notify: restart chronyd
+
+# chronyd 기동(양쪽 공통)
+- name: Ensure chronyd is enabled and started
+  ansible.builtin.systemd:
+    name: chronyd
+    enabled: true
+    state: started
+

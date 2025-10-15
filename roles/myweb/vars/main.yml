@@ -1,0 +1,29 @@
+---
+# Tomcat & Java settings
+tomcat_version: "9.0.107"
+tomcat_base_dir: /usr/local
+tomcat_install_dir: "{{ tomcat_base_dir }}/apache-tomcat-{{ tomcat_version }}"
+tomcat_symlink: "{{ tomcat_base_dir }}/tomcat"
+tomcat_archive: "apache-tomcat-{{ tomcat_version }}.tar.gz"
+tomcat_download_url: "https://downloads.apache.org/tomcat/tomcat-9/v{{ tomcat_version }}/bin/{{ tomcat_archive }}"
+
+tomcat_admin_user: "admin"
+tomcat_admin_pass: "centos"
+
+web_packages:
+  - httpd
+  - mod_ssl
+  - mod_proxy
+  - mod_proxy_http
+  - wget
+  - tar
+  - java-1.8.0-openjdk.x86_64
+  - policycoreutils-python-utils
+
+firewall_ports:
+  - 80
+  - 443
+  - 8080
+
+vhost_servername: "web2.example.com"
+vhost_serveradmin: "webmaster@example.com"

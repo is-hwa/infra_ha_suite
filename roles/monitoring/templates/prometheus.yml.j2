@@ -1,0 +1,20 @@
+#roles/monitor/templates/prometheus.yml.j2
+#-------------------------------------------
+# 전역 설정
+global:
+  scrape_interval: 15s # 메트릭 수집 간격
+  evaluation_interval: 15s # 룰 평가 간격
+
+scrape_configs: 
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+# node exporter  메트릭 수집
+  - job_name: 'linux-servers'
+    static_configs:
+      - targets:
+{% for host in prometheus_targets %}
+        - "{{ host }}"
+{% endfor %}
+

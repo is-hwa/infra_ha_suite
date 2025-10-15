@@ -1,0 +1,131 @@
+#/roles/monitoring/tasks/main.yml
+#--------------------------------
+
+#방화벽 작동중인지 확인
+- name: Check if firewalld is active
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+  ignore_errors: true
+
+#방화벽 포트 열기
+- name: open firewall port
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop:
+    - 9090/tcp
+    - 3100/tcp
+    - 3000/tcp
+    - 9100/tcp
+
+
+#그라파나 설치 위해 레포지토리 작성
+- name: Create grafana.repo file
+  ansible.builtin.copy:
+    dest: /etc/yum.repos.d/grafana.repo
+    content: |
+      [grafana]
+      name=grafana
+      baseurl=https://rpm.grafana.com
+      repo_gpgcheck=1
+      enabled=1
+      gpgcheck=1
+      gpgkey=https://rpm.grafana.com/gpg.key
+      sslverify=1
+      sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+    mode: '0644'
+
+
+#프로메테우스 설치 위한 스크립트 설치
+- name: Add Prometheus repository via script
+  ansible.builtin.shell: |
+    curl -s https://packagecloud.io/install/repositories/prometheus-rpm/release/script.rpm.sh | bash
+
+
+#프로메테우스, 노드 익스플로터, 로키, 프롬테일, 그라파나 설치
+- name: install prometheus2 node_exporter
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: present
+  loop :
+    - prometheus2
+    - node_exporter
+    - loki
+    - promtail
+    - grafana
+
+
+# Loki와 Grafana 서비스를 활성화하고 시작
+- name: Enable and start prometheus node_exporter
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - prometheus
+    - node_exporter
+    
+# 백업 파일 생성
+- name: Backup loki config file
+  ansible.builtin.copy:
+    src: /etc/loki/config.yml
+    dest: /etc/loki/config.yml.OLD
+    remote_src: yes
+    backup: yes
+    
+#일부 라인 주석 처리
+- name: Comment out lines containing 'querier:' in /etc/loki/config.yml
+  ansible.builtin.replace:
+    path: /etc/loki/config.yml
+    regexp: '^(querier:.*\n.*\n.*)$'
+    replace: '#\1'
+
+# Loki 데이터 저장을 위한 디렉토리 생성
+- name: Create directories for Loki
+  ansible.builtin.file:
+    path: "/var/lib/loki/{{ item }}"
+    state: directory
+    owner: loki
+    group: loki
+    mode: '0755'
+  loop:
+    - chunks
+    - rules
+
+#/var/lib/loki 경로의 모든 파일/디렉토리에 대해 loki 사용자 소유권 적용
+- name: Ensure ownership of /var/lib/loki recursively
+  ansible.builtin.file:
+    path: /var/lib/loki
+    owner: loki
+    group: loki
+    recurse: yes
+
+# promtail 설정에서 Loki 주소를 외부 도메인으로 변경
+- name: Replace localhost:3100 with mail.example.com:3100 in promtail config
+  ansible.builtin.replace:
+    path: /etc/promtail/config.yml
+    regexp: 'localhost:3100'
+    replace: 'ansible.example.com:3100'
+
+# promtail 유저가 /var/log/messages를 읽을 수 있도록 ACL 권한 추가
+- name: Set read permission for user promtail on /var/log/messages
+  ansible.posix.acl:
+    path: /var/log/messages
+    entity: promtail
+    etype: user
+    permissions: r
+    state: present
+
+# Loki와 Grafana 서비스를 활성화하고 시작
+- name: Enable and start Loki and Grafana
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - loki
+    - grafana-server
+
