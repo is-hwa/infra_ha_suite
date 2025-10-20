@@ -1,7 +1,8 @@
 # infra_ha_suite — Ansible Collection
 
 DNS, FTP, Mail, Web, Web LB(이중화), NTP, DB, 모니터링까지 **한 번의 플레이북 실행으로** 설치·구성해주는 인프라 자동화 컬렉션.
-[![Galaxy](https://galaxy.ansible.com/ui/repo/published/is_hwa/infra_ha_suite/)](GALAXY_URL)
+
+- **Ansible Galaxy**: https://galaxy.ansible.com/ui/repo/published/is_hwa/infra_ha_suite/
 - **Collection**: `is_hwa.infra_ha_suite`
 - **Ansible**: 2.14+ 권장 / Python 3.9+
 - **지원 OS**: RHEL/CentOS 8 ~ 9, Rocky/Alma 8 ~ 9, Ubuntu 20.04/22.04 (롤별 상이)
