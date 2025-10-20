@@ -4,7 +4,7 @@ DNS, FTP, Mail, Web, Web LB(이중화), NTP, DB, 모니터링까지 **한 번의
 
 - **Collection**: `is_hwa.infra_ha_suite`
 - **Ansible**: 2.14+ 권장 / Python 3.9+
-- **지원 OS**: RHEL/CentOS 8~9, Rocky/Alma 8~9, Ubuntu 20.04/22.04 (롤별 상이)
+- **지원 OS**: RHEL/CentOS 8 ~ 9, Rocky/Alma 8 ~ 9, Ubuntu 20.04/22.04 (롤별 상이)
 
 ## 특징
 - **원클릭 배포**: `ansible-playbook -i inventory/hosts.ini site.yml` 한 번으로 끝.
