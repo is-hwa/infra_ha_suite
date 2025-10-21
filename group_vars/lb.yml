@@ -1,0 +1,20 @@
+# === LB(Haproxy) + NFS 서버 설정 ===
+# NFS export
+nfs_export_path: "/www1"
+nfs_allowed_cidr: "192.168.10.0/24"
+
+# HAProxy (프런트 80 → web1/web2:80 라운드로빈)
+haproxy_frontend_http_port: 80
+haproxy_backends:
+  - { name: "web1", addr: "192.168.10.11", port: 80 }
+  - { name: "web6", addr: "192.168.10.16", port: 80 }
+
+# 패키지/방화벽
+lb_packages:
+  - haproxy
+  - nfs-utils
+  - firewalld
+
+lb_firewalld_services:
+  - http
+  - nfs
