@@ -1,0 +1,19 @@
+# === WEB(Apache) 측 공용 변수 예시 ===
+nfs_server: "ansible5.example.com"
+nfs_export_path: "/www1"
+web_docroot: "/www1"
+nfs_mount_opts: "rw,_netdev,nfsvers=4.2"
+
+web_packages:
+  - httpd
+  - nfs-utils
+
+web_firewalld_services:
+  - http
+
+selinux_booleans:
+  - { name: httpd_enable_cgi, state: yes }
+  - { name: httpd_use_nfs,   state: yes }
+
+cgi_bin: "/var/www/cgi-bin"
+test_cgi_name: "test.cgi"
