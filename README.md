@@ -43,7 +43,7 @@ ansible-galaxy collection install is_hwa.infra_ha_suite
 ansible-galaxy install -r requirements.yml
 ```
 
-2) inventory 예시 -> 각자의 환경에 맞춰서  IP를 조정해 사용하여야한다.
+2) inventory 예시 -> 각자의 환경에 맞춰서  IP를 조정해 사용하여야한다. 단, 이름은 바꿔선 안된다.
 ```yaml
 [dns]
 dns1 ansible_host=192.168.10.11
