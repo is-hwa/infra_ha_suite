@@ -1,0 +1,83 @@
+---
+- name: DNS 서버 구축
+  hosts: dns
+  become: yes
+  roles:
+    - mydns
+
+- name: set client
+  hosts: all:!dns
+  become: true
+  vars_files:
+    - group_vars/dns.yml
+  tasks:
+    - name: run client set
+      ansible.builtin.include_role:
+        name: mydns
+        tasks_from: client_dns.yml
+
+- name: NTP 서버/클라이언트 통합 플레이
+  hosts: ntp_server:ntp_clients
+  become: true
+  roles:
+    - myntp
+
+- name: Apply LB+NFS role
+  hosts: lb
+  become: true
+  roles:
+    - web_lb_nfs
+
+- name: set web
+  hosts: web_lb
+  become: true
+  tasks:
+    - name: run web part of the role
+      ansible.builtin.include_role:
+        name: web_lb_nfs
+        tasks_from: web.yml
+
+- name: FTP & MAIL 서버 구축
+  hosts: ansible1.example.com
+  become: true
+  roles:
+    - myftp
+    - mymail
+
+- name: DB infra 구축
+  hosts: dbservers
+  become: true
+  vars_files:
+    - ./roles/mydb/vars/vars.yml
+  roles:
+    - mydb
+  tasks:
+    - name: start roles job
+      ansible.builtin.include_role:
+        name: mydb
+
+- name: WEB server
+  hosts: webservers
+  become: true
+  roles:
+    - myweb
+
+- name: Run main.yml on localhost
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - import_tasks: roles/monitoring/tasks/main.yml
+
+- name: Run other_server.yml on all hosts
+  hosts: all
+  become: true
+  tasks:
+    - import_tasks: roles/monitoring/tasks/other_server.yml
+
+- name: Run main1.yml on localhost
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - import_tasks: roles/monitoring/tasks/main1.yml
