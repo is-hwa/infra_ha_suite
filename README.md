@@ -30,6 +30,8 @@ DNS, FTP, Mail, Web, Web LB(이중화), NTP, DB, 모니터링까지 **한 번의
 
 ### 1) 설치
 ```bash
+# github에서 내려받기 (권장)
+git clone https://github.com/is-hwa/infra_ha_suite.git
 # Ansible Galaxy에서 설치
 ansible-galaxy collection install is_hwa.infra_ha_suite
 
@@ -40,7 +42,8 @@ ansible-galaxy collection install is_hwa.infra_ha_suite
 #     version: ">=1.0.0"
 ansible-galaxy install -r requirements.yml
 ```
-2) inventory 예시
+
+2) inventory 예시 -> 각자의 환경에 맞춰서  IP를 조정해 사용하여야한다.
 ```yaml
 [dns]
 dns1 ansible_host=192.168.10.11
@@ -70,26 +73,6 @@ db1 ansible_host=192.168.10.71
 mon1 ansible_host=192.168.10.81
 ```
 
-3) 플레이북(컬렉션 FQCN 사용)
-# playbook.yml
-```yaml
----
-- name: Build hybrid infra all-in-one
-  hosts: all
-  become: true
-  roles:
-    - is_hwa.infra_ha_suite.common
-    - { role: is_hwa.infra_ha_suite.dns,         when: "'dns' in group_names" }
-    - { role: is_hwa.infra_ha_suite.ftp,         when: "'ftp' in group_names" }
-    - { role: is_hwa.infra_ha_suite.mail,        when: "'mail' in group_names" }
-    - { role: is_hwa.infra_ha_suite.web,         when: "'web' in group_names" }
-    - { role: is_hwa.infra_ha_suite.web_lb,      when: "'web_lb' in group_names" }
-    - { role: is_hwa.infra_ha_suite.ntp,         when: "'ntp' in group_names" }
-    - { role: is_hwa.infra_ha_suite.db,          when: "'db' in group_names" }
-    - { role: is_hwa.infra_ha_suite.monitoring,  when: "'monitoring' in group_names" }
-```
-4) 릴리스(Ansible Galaxy 퍼블리시)
-# galaxy.yml 의 version 갱신(semver)
-ansible-galaxy collection build
-ansible-galaxy collection publish dist/is_hwa-infra_ha_suite-<VER>.tar.gz --token "$GALAXY_API_TOKEN"
+3) 사용법
+   크게 어렵지 않다. inventory 파일에서 각자 사용자의 환경에 맞게 IP를 조정했다면 playbook.yml을 사용하여 내가 원하는 곳에 원하는 환경을 구성할 수 있다.
 
