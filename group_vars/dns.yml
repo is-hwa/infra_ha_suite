@@ -1,0 +1,5 @@
+dns_domain: "example.com"       # 도메인 이름
+dns_serial: "2025091801"        # 존 파일 serial 번호
+dns_ns: "ns1.example.com."      # 네임서버 주소
+dns_host_ip: "192.168.10.10"    # NS 서버 IP
+dns_www_ip: "192.168.10.12"     # 웹 서버 IP
